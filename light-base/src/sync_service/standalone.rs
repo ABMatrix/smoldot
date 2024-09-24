@@ -1165,7 +1165,7 @@ pub(super) async fn start_standalone_chain<TPlat: PlatformRef>(
                 // This constant corresponds to the maximum number of blocks that nodes will answer
                 // in one request. If this constant happens to be inaccurate, everything will still
                 // work but less efficiently.
-                let num_blocks = NonZeroU64::new(cmp::min(64, num_blocks.get())).unwrap();
+                let num_blocks = NonZeroU64::new(cmp::min(256, num_blocks.get())).unwrap();
 
                 let peer_id = sync[source_id].0.clone(); // TODO: why does this require cloning? weird borrow chk issue
 

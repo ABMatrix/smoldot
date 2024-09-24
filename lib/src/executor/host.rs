@@ -2285,6 +2285,7 @@ impl ReadyToRun {
                     },
                 }
             }
+            _ => host_fn_not_implemented!(),
         }
     }
 }

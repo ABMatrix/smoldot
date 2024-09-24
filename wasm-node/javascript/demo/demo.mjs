@@ -26,16 +26,19 @@ import { Worker } from 'node:worker_threads';
 // List of files containing chains available to the user.
 // The first item has a specific role in that we always connect to it at initialization.
 const chainSpecsFiles = [
-    '../../demo-chain-specs/westend.json',
-    '../../demo-chain-specs/westend-westmint.json',
-    '../../demo-chain-specs/polkadot.json',
-    '../../demo-chain-specs/polkadot-asset-hub.json',
-    '../../demo-chain-specs/polkadot-acala.json',
-    '../../demo-chain-specs/kusama.json',
-    '../../demo-chain-specs/kusama-statemine.json',
-    '../../demo-chain-specs/kusama-karura.json',
-    '../../demo-chain-specs/rococo.json',
-    '../../demo-chain-specs/rococo-canvas.json',
+    // '../../demo-chain-specs/bool-dev.json',
+    '../../demo-chain-specs/local-testnet.json',
+    // '../../demo-chain-specs/beta-testnet.json',
+    // '../../demo-chain-specs/westend.json',
+    // '../../demo-chain-specs/westend-westmint.json',
+    // '../../demo-chain-specs/polkadot.json',
+    // '../../demo-chain-specs/polkadot-asset-hub.json',
+    // '../../demo-chain-specs/polkadot-acala.json',
+    // '../../demo-chain-specs/kusama.json',
+    // '../../demo-chain-specs/kusama-statemine.json',
+    // '../../demo-chain-specs/kusama-karura.json',
+    // '../../demo-chain-specs/rococo.json',
+    // '../../demo-chain-specs/rococo-canvas.json',
 ];
 
 // Load all the files in a single map.
@@ -59,7 +62,7 @@ worker.postMessage(port2, [port2]);
 
 const client = smoldot.start({
     portToWorker: port1,
-    maxLogLevel: process.stdout.isTTY ? 3 : 4,  // Can be modified manually for more verbosity
+    maxLogLevel: 4,  // Can be modified manually for more verbosity
     forbidTcp: false,
     forbidWs: false,
     forbidNonLocalWs: false,
