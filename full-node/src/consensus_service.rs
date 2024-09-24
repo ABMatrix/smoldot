@@ -329,7 +329,7 @@ impl ConsensusService {
                 module: finalized_code,
                 heap_pages,
                 exec_hint: executor::vm::ExecHint::ValidateAndCompile, // TODO: probably should be decided by the optimisticsync
-                allow_unresolved_imports: false,
+                allow_unresolved_imports: true,
             })
             .map_err(InitError::FinalizedRuntimeInit)?
         };
@@ -3156,7 +3156,7 @@ pub async fn execute_block_and_insert(
                 module: &new_code,
                 heap_pages: new_heap_pages,
                 exec_hint: executor::vm::ExecHint::ValidateAndCompile,
-                allow_unresolved_imports: false,
+                allow_unresolved_imports: true,
             })
             .map_err(ExecuteBlockInvalidBlockError::InvalidNewRuntime)?;
             runtime_build_duration += before_runtime_build.elapsed();
