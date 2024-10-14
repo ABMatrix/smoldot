@@ -22,7 +22,7 @@ use crate::{chain::chain_information, header, verify};
 
 use super::{
     fmt, Arc, BestScore, Block, BlockConsensus, BlockFinality, Duration, Finality,
-    FinalizedConsensus, NonFinalizedTree, Vec,
+    FinalizedConsensus, NonFinalizedTree,
 };
 
 impl<T> NonFinalizedTree<T> {

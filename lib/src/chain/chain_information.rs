@@ -39,8 +39,6 @@
 //! for instance download the history from other nodes.
 
 use crate::header;
-
-use alloc::{boxed::Box, vec::Vec};
 use core::num::NonZeroU64;
 
 pub mod build;

@@ -22,7 +22,6 @@
 
 use crate::executor::host;
 
-use alloc::vec::Vec;
 use core::{fmt, ops, str};
 
 pub use super::TrieEntryVersion;

@@ -18,7 +18,7 @@
 use super::{ParseError, ParseErrorInner};
 use crate::header::BabeNextConfig;
 
-use alloc::{collections::BTreeMap, format, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, format};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

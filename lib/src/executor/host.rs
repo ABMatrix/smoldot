@@ -199,7 +199,7 @@
 use super::{allocator, vm};
 use crate::{trie, util};
 
-use alloc::{borrow::ToOwned as _, boxed::Box, string::String, sync::Arc, vec, vec::Vec};
+use alloc::{borrow::ToOwned as _, sync::Arc, vec};
 use core::{fmt, hash::Hasher as _, iter, str};
 use functions::HostFunction;
 
@@ -2285,6 +2285,54 @@ impl ReadyToRun {
                     },
                 }
             }
+            HostFunction::ext_vrf_runtime_interface_verify_vrf_version_1 => {
+                // return 'true' here
+                HostVm::ReadyToRun(ReadyToRun {
+                    resume_value: Some(vm::WasmValue::I32(1)),
+                    inner: self.inner,
+                })
+            }
+            HostFunction::ext_attestation_runtime_interface_verify_report_version_1
+            | HostFunction::ext_attestation_runtime_interface_verify_report_hash_version_1 => {
+                let return_enclave_hash = matches!(
+                    host_fn,
+                    HostFunction::ext_attestation_runtime_interface_verify_report_hash_version_1
+                );
+                let (timestamp_ptr, timestamp_size) = expect_pointer_size_raw!(0);
+                let (report_ptr, report_size) = expect_pointer_size_raw!(1);
+                let (hash_ptr, hash_size) = expect_pointer_size_raw!(2);
+                let (root_ptr, root_size) = expect_pointer_size_raw!(3);
+
+                let req = VerifyAttestationReport {
+                    inner: self.inner,
+                    timestamp_ptr,
+                    timestamp_size,
+                    report_ptr,
+                    report_size,
+                    hash_ptr,
+                    hash_size,
+                    root_ptr,
+                    root_size
+                };
+                let (success, pk, enclave_hash) = req.verify_report();
+                if return_enclave_hash {
+                    // Writing `(bool, Vec<u8>, Vec<u8>)`.
+                    req.alloc_write_and_return_pointer_size(
+                        host_fn.name(),
+                        success,
+                        pk,
+                        Some(enclave_hash),
+                    )
+                } else {
+                    // Writing `(bool, Vec<u8>)`.
+                    req.alloc_write_and_return_pointer_size(
+                        host_fn.name(),
+                        success,
+                        pk,
+                        None,
+                    )
+                }
+            }
             _ => host_fn_not_implemented!(),
         }
     }
@@ -3760,6 +3808,135 @@ impl fmt::Debug for EndStorageTransaction {
 enum FunctionImport {
     Resolved(HostFunction),
     Unresolved { module: String, name: String },
+}
+
+
+/// Must verify whether a attestation report with proof is correct.
+pub struct VerifyAttestationReport {
+    inner: Box<Inner>,
+    /// Pointer to the timestamp. Guaranteed to be in range.
+    timestamp_ptr: u32,
+    /// Size of the timestamp. Guaranteed to be in range.
+    timestamp_size: u32,
+    /// Pointer to the report. Guaranteed to be in range.
+    report_ptr: u32,
+    /// Size of the report. Guaranteed to be in range.
+    report_size: u32,
+    /// Pointer to the enclave hash. Guaranteed to be in range.
+    hash_ptr: u32,
+    /// Size of the enclave hash. Guaranteed to be in range.
+    hash_size: u32,
+    /// Pointer to the proof. Guaranteed to be in range.
+    root_ptr: u32,
+    /// Size of the proof. Guaranteed to be in range.
+    root_size: u32,
+}
+
+impl VerifyAttestationReport {
+    /// Returns the timestamp.
+    pub fn timestamp(&'_ self) -> impl AsRef<[u8]> + '_ {
+        self.inner
+            .vm
+            .read_memory(self.timestamp_ptr, self.timestamp_size)
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    /// Returns the report.
+    pub fn report(&'_ self) -> impl AsRef<[u8]> + '_ {
+        self.inner
+            .vm
+            .read_memory(self.report_ptr, self.report_size)
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    /// Returns the enclave hash.
+    pub fn hash(&'_ self) -> impl AsRef<[u8]> + '_ {
+        self.inner
+            .vm
+            .read_memory(self.hash_ptr, self.hash_size)
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    /// Returns the root bytes.
+    pub fn root(&'_ self) -> impl AsRef<[u8]> + '_ {
+        self.inner
+            .vm
+            .read_memory(self.root_ptr, self.root_size)
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    /// Verify report, return `true` if it is valid, pk for the device and enclave_hash.
+    pub fn verify_report(&self) -> (bool, Vec<u8>, Vec<u8>) {
+        use occlum_ra::attestation::{AttestationReport, DcapAttestation, IasAttestation, AttestationStyle};
+        let mut timestamp_raw = self.timestamp();
+        if timestamp_raw.as_ref().len() != 8 {
+            return (false, Vec::new(), Vec::new());
+        }
+        let mut time_bytes = [0u8; 8];
+        time_bytes.copy_from_slice(&mut timestamp_raw.as_ref());
+        let timestamp = u64::from_ne_bytes(time_bytes);
+        // let timestamp = 1;
+        let attestation_report = match AttestationReport::from_payload(self.report().as_ref()) {
+            Ok(report) => report,
+            Err(_) => {
+                return (false, Vec::new(), Vec::new());
+            }
+        };
+        let result = match attestation_report.style {
+            AttestationStyle::DCAP => DcapAttestation::verify(&attestation_report, timestamp),
+            AttestationStyle::EPID => IasAttestation::verify(&attestation_report, timestamp),
+        };
+        match result {
+            Ok(fields) => {
+                let hashes: Vec<Vec<u8>> = self.hash().as_ref().chunks(32).into_iter().map(|v| v.to_vec()).collect();
+                let mr_enclave_validity = hashes.contains(&fields.mr_enclave);
+                let signer_validity = fields.mr_signer == self.root().as_ref().to_vec();
+                (
+                    mr_enclave_validity && signer_validity,
+                    fields.report_data[0..32].to_vec(),
+                    fields.mr_enclave.to_vec(),
+                )
+            }
+            Err(_) => {
+                (false, Vec::new(), Vec::new())
+            }
+        }
+    }
+
+    pub fn alloc_write_and_return_pointer_size(self, name: &'static str, success: bool, pk: Vec<u8>, enclave_hash: Option<Vec<u8>>) -> HostVm {
+        let pk_len = util::encode_scale_compact_usize(pk.len());
+        if let Some(enclave_hash) = enclave_hash {
+            let hash_len = util::encode_scale_compact_usize(enclave_hash.len());
+            self.inner.alloc_write_and_return_pointer_size(
+                name,
+                iter::once(&[success as u8][..])
+                    .chain(iter::once(pk_len.as_ref()))
+                    .chain(iter::once(pk.as_ref()))
+                    .map(either::Left)
+                    .chain(iter::once::<&[u8]>(hash_len.as_ref()).chain(iter::once(enclave_hash.as_ref())).map(either::Right)),
+            )
+        } else {
+            self.inner.alloc_write_and_return_pointer_size(
+                name,
+                iter::once(&[success as u8][..])
+                    .chain(iter::once(pk_len.as_ref()))
+                    .map(either::Left)
+                    .chain(iter::once(pk).map(either::Right)),
+            )
+        }
+
+    }
+}
+
+impl fmt::Debug for VerifyAttestationReport {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("VerifyAttestationReport")
+            .field("timestamp", &self.timestamp().as_ref())
+            .field("report", &self.report().as_ref())
+            .field("hash", &self.hash().as_ref())
+            .field("root", &self.root().as_ref())
+            .finish()
+    }
 }
 
 /// Running virtual machine. Shared between all the variants in [`HostVm`].

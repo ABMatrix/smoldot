@@ -53,7 +53,7 @@ use crate::{
     verify::inherents,
 };
 
-use alloc::{borrow::ToOwned as _, vec::Vec};
+use alloc::borrow::ToOwned as _;
 use core::{iter, mem};
 
 pub use runtime_call::{

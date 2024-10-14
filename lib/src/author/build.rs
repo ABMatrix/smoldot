@@ -24,7 +24,6 @@ use crate::{
     verify::inherents,
 };
 
-use alloc::vec::Vec;
 use core::{num::NonZeroU64, time::Duration};
 
 pub use runtime::{Nibble, StorageChanges, TrieEntryVersion};

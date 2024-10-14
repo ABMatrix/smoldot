@@ -34,6 +34,7 @@ pub mod runtime_call;
 pub mod storage_diff;
 pub mod trie_root_calculator;
 pub mod vm;
+pub mod bool_native;
 
 pub use host::{CoreVersion, CoreVersionError, CoreVersionRef};
 

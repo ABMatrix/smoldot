@@ -62,7 +62,7 @@ worker.postMessage(port2, [port2]);
 
 const client = smoldot.start({
     portToWorker: port1,
-    maxLogLevel: 4,  // Can be modified manually for more verbosity
+    maxLogLevel: 3,  // Can be modified manually for more verbosity
     forbidTcp: false,
     forbidWs: false,
     forbidNonLocalWs: false,

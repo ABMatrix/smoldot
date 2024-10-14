@@ -20,8 +20,6 @@
 use super::*;
 use crate::finality::{decode, verify};
 
-use core::cmp;
-
 impl<T> NonFinalizedTree<T> {
     /// Returns a list of blocks (by their height and hash) that need to be finalized before any
     /// of their descendants can be finalized.

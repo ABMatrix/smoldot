@@ -19,7 +19,6 @@
 
 use crate::{chain::chain_information, header};
 
-use alloc::{boxed::Box, vec::Vec};
 use core::{fmt, num::NonZeroU64};
 use hashbrown::HashMap;
 

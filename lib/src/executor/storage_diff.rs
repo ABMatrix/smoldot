@@ -38,7 +38,7 @@
 
 // TODO: more docs
 
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::collections::BTreeMap;
 use core::{borrow::Borrow, cmp, fmt, ops};
 use hashbrown::HashMap;
 

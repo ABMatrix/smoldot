@@ -22,7 +22,7 @@
 
 use super::light_sync_state::LightSyncState;
 
-use alloc::{boxed::Box, collections::BTreeMap, format, string::String, vec::Vec};
+use alloc::{collections::BTreeMap, format};
 use fnv::FnvBuildHasher;
 use hashbrown::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};

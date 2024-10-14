@@ -108,7 +108,6 @@
 //! ```
 
 use crate::chain::fork_tree;
-use alloc::vec::Vec;
 use core::{cmp, mem, ops, time::Duration};
 
 pub use fork_tree::NodeIndex;
