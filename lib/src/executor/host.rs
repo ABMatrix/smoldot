@@ -3868,7 +3868,7 @@ impl VerifyAttestationReport {
     /// Verify report, return `true` if it is valid, pk for the device and enclave_hash.
     pub fn verify_report(&self) -> (bool, Vec<u8>, Vec<u8>) {
         use occlum_ra::attestation::{AttestationReport, DcapAttestation, IasAttestation, AttestationStyle};
-        let mut timestamp_raw = self.timestamp();
+        let timestamp_raw = self.timestamp();
         if timestamp_raw.as_ref().len() != 8 {
             return (false, Vec::new(), Vec::new());
         }
