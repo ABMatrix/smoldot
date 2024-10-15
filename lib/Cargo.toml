@@ -79,8 +79,7 @@ twox-hash = { version = "1.6.3", default-features = false }
 wasmi = { version = "0.36.0", default-features = false }
 x25519-dalek = { version = "2.0.0-rc.3", default-features = false, features = ["alloc", "precomputed-tables", "static_secrets", "zeroize"] }
 zeroize = { version = "1.7.0", default-features = false, features = ["alloc"] }
-occlum-ra = { git = "https://github.com/ABMatrix/occlum-ra", rev = "c570ef91149856b74e5f5393db00143428815f52", default-features = false }
-
+occlum-ra.workspace = true
 
 # `database-sqlite` feature
 rusqlite = { version = "0.32.1", optional = true, default-features = false, features = ["bundled"] }
