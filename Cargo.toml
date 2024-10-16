@@ -44,6 +44,4 @@ inherits = "release"
 opt-level = "z"
 incremental = false
 
-[workspace.dependencies]
-occlum-ra = { path = "./occlum-ra/occlum-ra", default-features = false }
 
