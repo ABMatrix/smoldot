@@ -201,6 +201,7 @@ use crate::{trie, util};
 
 use alloc::{borrow::ToOwned as _, sync::Arc, vec};
 use core::{fmt, hash::Hasher as _, iter, str};
+use num_traits::ToBytes;
 use functions::HostFunction;
 
 pub mod runtime_version;
@@ -2298,15 +2299,17 @@ impl ReadyToRun {
                     host_fn,
                     HostFunction::ext_attestation_runtime_interface_verify_report_hash_version_1
                 );
-                let (timestamp_ptr, timestamp_size) = expect_pointer_size_raw!(0);
+                let timestamp = match &params[0] {
+                    vm::WasmValue::I64(v) => *v as u64,
+                    _ => unreachable!(),
+                };
                 let (report_ptr, report_size) = expect_pointer_size_raw!(1);
                 let (hash_ptr, hash_size) = expect_pointer_size_raw!(2);
                 let (root_ptr, root_size) = expect_pointer_size_raw!(3);
 
                 let req = VerifyAttestationReport {
                     inner: self.inner,
-                    timestamp_ptr,
-                    timestamp_size,
+                    timestamp,
                     report_ptr,
                     report_size,
                     hash_ptr,
@@ -3814,10 +3817,8 @@ enum FunctionImport {
 /// Must verify whether a attestation report with proof is correct.
 pub struct VerifyAttestationReport {
     inner: Box<Inner>,
-    /// Pointer to the timestamp. Guaranteed to be in range.
-    timestamp_ptr: u32,
-    /// Size of the timestamp. Guaranteed to be in range.
-    timestamp_size: u32,
+    /// timestamp.
+    timestamp: u64,
     /// Pointer to the report. Guaranteed to be in range.
     report_ptr: u32,
     /// Size of the report. Guaranteed to be in range.
@@ -3834,11 +3835,8 @@ pub struct VerifyAttestationReport {
 
 impl VerifyAttestationReport {
     /// Returns the timestamp.
-    pub fn timestamp(&'_ self) -> impl AsRef<[u8]> + '_ {
-        self.inner
-            .vm
-            .read_memory(self.timestamp_ptr, self.timestamp_size)
-            .unwrap_or_else(|_| unreachable!())
+    pub fn timestamp(&'_ self) -> u64 {
+        self.timestamp
     }
 
     /// Returns the report.
@@ -3868,13 +3866,7 @@ impl VerifyAttestationReport {
     /// Verify report, return `true` if it is valid, pk for the device and enclave_hash.
     pub fn verify_report(&self) -> (bool, Vec<u8>, Vec<u8>) {
         use bnk_occlum_ra::attestation::{AttestationReport, DcapAttestation, IasAttestation, AttestationStyle};
-        let timestamp_raw = self.timestamp();
-        if timestamp_raw.as_ref().len() != 8 {
-            return (false, Vec::new(), Vec::new());
-        }
-        let mut time_bytes = [0u8; 8];
-        time_bytes.copy_from_slice(&mut timestamp_raw.as_ref());
-        let timestamp = u64::from_be_bytes(time_bytes);
+        let timestamp = self.timestamp();
         let attestation_report = match AttestationReport::from_payload(self.report().as_ref()) {
             Ok(report) => report,
             Err(_) => {
@@ -3930,7 +3922,7 @@ impl VerifyAttestationReport {
 impl fmt::Debug for VerifyAttestationReport {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("VerifyAttestationReport")
-            .field("timestamp", &self.timestamp().as_ref())
+            .field("timestamp", &self.timestamp())
             .field("report", &self.report().as_ref())
             .field("hash", &self.hash().as_ref())
             .field("root", &self.root().as_ref())
