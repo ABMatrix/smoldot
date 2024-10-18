@@ -3874,8 +3874,7 @@ impl VerifyAttestationReport {
         }
         let mut time_bytes = [0u8; 8];
         time_bytes.copy_from_slice(&mut timestamp_raw.as_ref());
-        let timestamp = u64::from_ne_bytes(time_bytes);
-        // let timestamp = 1;
+        let timestamp = u64::from_le_bytes(time_bytes);
         let attestation_report = match AttestationReport::from_payload(self.report().as_ref()) {
             Ok(report) => report,
             Err(_) => {
