@@ -1078,7 +1078,7 @@ pub enum TransactionStatus {
     #[serde(rename = "usurped")]
     Usurped(HashHexString),
     #[serde(rename = "dropped")]
-    Dropped,
+    Dropped(String),
     #[serde(rename = "invalid")]
     Invalid,
 }

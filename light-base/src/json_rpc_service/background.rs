@@ -4937,7 +4937,7 @@ pub(super) async fn run<TPlat: PlatformRef>(
                     continue;
                 };
 
-                match (drop_reason, &transaction_watch.ty) {
+                match (drop_reason.clone(), &transaction_watch.ty) {
                     (
                         transactions_service::DropReason::GapInChain
                         | transactions_service::DropReason::Crashed,
@@ -5002,7 +5002,7 @@ pub(super) async fn run<TPlat: PlatformRef>(
                             .send(
                                 methods::ServerToClient::author_extrinsicUpdate {
                                     subscription: Cow::Borrowed(&subscription_id),
-                                    result: methods::TransactionStatus::Dropped,
+                                    result: methods::TransactionStatus::Dropped(drop_reason.to_string()),
                                 }
                                 .to_json_request_object_parameters(None),
                             )

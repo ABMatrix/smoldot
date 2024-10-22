@@ -325,28 +325,34 @@ pub enum TransactionStatus {
 }
 
 /// See [`TransactionStatus::Dropped`].
-#[derive(Debug, Clone)]
+#[derive(Debug, derive_more::Display, Clone)]
 pub enum DropReason {
     /// Transaction has been included in a finalized block.
     ///
     /// This is a success path.
+    #[display(fmt = "Transaction has been included in a finalized block")]
     Finalized { block_hash: [u8; 32], index: u32 },
 
     /// Transaction has been dropped because there was a gap in the chain of blocks. It is
     /// impossible to know.
+    #[display(fmt = "Transaction has been dropped because there was a gap in the chain of blocks")]
     GapInChain,
 
     /// Transaction has been dropped because the maximum number of transactions in the pool has
     /// been reached.
+    #[display(fmt = "Transaction has been dropped because the maximum number of transactions in the pool has been reached")]
     MaxPendingTransactionsReached,
 
     /// Transaction has been dropped because it is invalid.
+    #[display(fmt = "Transaction has been dropped because it is invalid: {_0}")]
     Invalid(validate::TransactionValidityError),
 
     /// Transaction has been dropped because we have failed to validate it.
+    #[display(fmt = "Transaction has been dropped because we have failed to validate it: {_0}")]
     ValidateError(ValidateTransactionError),
 
     /// Transaction service background task has crashed.
+    #[display(fmt = "Transaction service background task has crashed")]
     Crashed,
 }
 
