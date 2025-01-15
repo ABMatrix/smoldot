@@ -2248,7 +2248,7 @@ async fn background_task<TPlat: PlatformRef>(mut task: BackgroundTask<TPlat>) {
                         // as documented in `basic_peering_strategy`.
                         let insert_outcome =
                             task.peering_strategy
-                                .insert_chain_peer(chain_id, peer_id.clone(), 30); // TODO: constant
+                                .insert_chain_peer(chain_id, peer_id.clone(), 100); // TODO: constant
 
                         if let basic_peering_strategy::InsertChainPeerResult::Inserted {
                             peer_removed,

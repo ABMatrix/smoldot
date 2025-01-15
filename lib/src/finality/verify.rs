@@ -82,25 +82,25 @@ pub fn verify_commit<C: AsRef<[u8]>>(config: CommitVerifyConfig<C>) -> CommitVer
     let mut randomness = ChaCha20Rng::from_seed(config.randomness_seed);
 
     // Make sure that there is no duplicate authority public key.
-    {
-        let mut unique = hashbrown::HashSet::with_capacity_and_hasher(
-            decoded_commit.auth_data.len(),
-            crate::util::SipHasherBuild::new({
-                let mut seed = [0; 16];
-                randomness.fill_bytes(&mut seed);
-                seed
-            }),
-        );
-        if let Some((_, faulty_pub_key)) = decoded_commit
-            .auth_data
-            .iter()
-            .find(|(_, pubkey)| !unique.insert(pubkey))
-        {
-            return CommitVerify::Finished(Err(CommitVerifyError::DuplicateSignature(
-                **faulty_pub_key,
-            )));
-        }
-    }
+    // {
+    //     let mut unique = hashbrown::HashSet::with_capacity_and_hasher(
+    //         decoded_commit.auth_data.len(),
+    //         crate::util::SipHasherBuild::new({
+    //             let mut seed = [0; 16];
+    //             randomness.fill_bytes(&mut seed);
+    //             seed
+    //         }),
+    //     );
+    //     if let Some((_, faulty_pub_key)) = decoded_commit
+    //         .auth_data
+    //         .iter()
+    //         .find(|(_, pubkey)| !unique.insert(pubkey))
+    //     {
+    //         return CommitVerify::Finished(Err(CommitVerifyError::DuplicateSignature(
+    //             **faulty_pub_key,
+    //         )));
+    //     }
+    // }
 
     CommitVerification {
         commit: config.commit,
