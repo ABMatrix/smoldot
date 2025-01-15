@@ -472,10 +472,44 @@ impl LightSyncState {
             return Err(CheckpointToChainInformationError::GenesisBlockCheckpoint);
         }
 
+        // handle aura consensus
+        if let Some(aura_authority) = &self.inner.aura_authority {
+            return ChainInformation {
+                finalized_block_header: Box::new(self.inner.finalized_block_header.clone()),
+                consensus: ChainInformationConsensus::Aura {
+                    finalized_authorities_list: aura_authority.1.clone(),
+                    slot_duration: NonZeroU64::new(aura_authority.0).unwrap(),
+                },
+                finality: ChainInformationFinality::Grandpa {
+                    after_finalized_block_authorities_set_id: self.inner.grandpa_authority_set.set_id,
+                    finalized_triggered_authorities: {
+                        self.inner
+                            .grandpa_authority_set
+                            .current_authorities
+                            .iter()
+                            .map(|authority| {
+                                Ok(crate::header::GrandpaAuthority {
+                                    public_key: authority.public_key,
+                                    weight: NonZeroU64::new(authority.weight)
+                                        .ok_or(CheckpointToChainInformationError::InvalidGrandpaAuthorityWeight)?,
+                                })
+                            })
+                            .collect::<Result<_, _>>()?
+                    },
+                    finalized_scheduled_change: None, // TODO: unimplemented
+                },
+            }
+                .try_into()
+                .map_err(CheckpointToChainInformationError::InvalidData)
+        }
+
+        // handle babe consensus
         // Create a sorted list of all regular epochs that haven't been pruned from the sync state.
         let mut epochs: Vec<_> = self
             .inner
             .babe_epoch_changes
+            .as_ref()
+            .ok_or(CheckpointToChainInformationError::InvalidData(ValidityError::BabeEpochInfoMismatch))?
             .epochs
             .iter()
             .filter(|((_, block_num), _)| {

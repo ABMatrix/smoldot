@@ -19,14 +19,20 @@ use super::{ParseError, ParseErrorInner};
 use crate::header::BabeNextConfig;
 
 use alloc::{collections::BTreeMap, format};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use crate::header;
+
+/// Slot-Duration(milliseconds) & Authority-List
+type AuraConsensusData = (u64, Vec<[u8; 32]>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub(super) struct LightSyncState {
-    babe_epoch_changes: HexString,
-    babe_finalized_block_weight: u32,
+    babe_epoch_changes: Option<HexString>,
+    babe_finalized_block_weight: Option<u32>,
+    aura_consensus: Option<HexString>,
     finalized_block_header: HexString,
     grandpa_authority_set: HexString,
 }
@@ -48,14 +54,26 @@ impl LightSyncState {
             Ok((_, v)) => v,
             Err(_err) => return Err(ParseError(ParseErrorInner::Other)),
         };
-        let babe_epoch_changes = match nom::Finish::finish(nom::combinator::complete(
-            epoch_changes::<nom::error::Error<&[u8]>>,
-        )(&self.babe_epoch_changes.0[..]))
-        {
-            Ok((_, v)) => v,
-            Err(_err) => return Err(ParseError(ParseErrorInner::Other)),
-        };
+        let (babe_epoch_changes, aura_authority) = match (&self.babe_epoch_changes, &self.aura_consensus) {
+            (Some(babe_epoch_changes), None) => {
+                let babe_epoch_changes = match nom::Finish::finish(nom::combinator::complete(
+                    epoch_changes::<nom::error::Error<&[u8]>>,
+                )(&babe_epoch_changes.0[..]))
+                {
+                    Ok((_, v)) => v,
+                    Err(_err) => return Err(ParseError(ParseErrorInner::Other)),
+                };
+                (Some(babe_epoch_changes), None)
+            },
 
+            (None, Some(aura_consensus)) => {
+                use parity_scale_codec::Decode;
+
+                let data = AuraConsensusData::decode(&mut aura_consensus.0.as_slice()).map_err(|_| ParseError(ParseErrorInner::Other))?;
+                (None, Some((data.0, data.1.iter().map(|v| header::AuraAuthority {public_key: *v}).collect())))
+            },
+            _ => return Err(ParseError(ParseErrorInner::Other))
+        };
         Ok(DecodedLightSyncState {
             finalized_block_header: crate::header::decode(
                 &self.finalized_block_header.0[..],
@@ -65,13 +83,15 @@ impl LightSyncState {
             .into(),
             grandpa_authority_set,
             babe_epoch_changes,
+            aura_authority,
         })
     }
 }
 
 #[derive(Debug)]
 pub(super) struct DecodedLightSyncState {
-    pub(super) babe_epoch_changes: EpochChanges,
+    pub(super) babe_epoch_changes: Option<EpochChanges>,
+    pub(super) aura_authority: Option<(u64, Vec<header::AuraAuthority>)>,
     pub(super) finalized_block_header: crate::header::Header,
     pub(super) grandpa_authority_set: AuthoritySet,
 }
