@@ -1022,20 +1022,32 @@ pub(super) async fn run<TPlat: PlatformRef>(
                                 )
                                 .await;
                         } else {
-                            // Return the genesis block hash here
-                            let _ = me
-                                .responses_tx
-                                .send(
-                                    methods::Response::chain_getBlockHash(
-                                        methods::HashHexString(me.genesis_block_hash),
+                            // todo: maybe use config
+                            if me.pending_get_finalized_head.len() >= 10 {
+                                log!(
+                                    &me.platform,
+                                    Warn,
+                                    &me.log_target,
+                                    format!(
+                                        "Pending get finalized head rpc nums up to limit",
                                     )
-                                        .to_json_response(request_id_json),
-                                )
-                                .await;
-                            // // Finalized block hash not known yet. Push the request to a list of
-                            // // requests that will be answered once it is known.
-                            // me.pending_get_finalized_head
-                            //     .push(request_id_json.to_owned());
+                                );
+                                // Return the genesis block hash here
+                                let _ = me
+                                    .responses_tx
+                                    .send(
+                                        methods::Response::chain_getBlockHash(
+                                            methods::HashHexString(me.genesis_block_hash),
+                                        )
+                                            .to_json_response(request_id_json),
+                                    )
+                                    .await;
+                            } else {
+                                // Finalized block hash not known yet. Push the request to a list of
+                                // requests that will be answered once it is known.
+                                me.pending_get_finalized_head
+                                    .push(request_id_json.to_owned());
+                            }
                         }
                     }
 
